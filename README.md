@@ -26,6 +26,7 @@ This mod has a large config with many values to change to your desire with the a
 
 - 1.0.0: Mod release!
 - 1.0.1: updated readme
+- 1.0.2: Fixed glitched first quest
 
 ## Contact
 
