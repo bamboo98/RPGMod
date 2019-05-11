@@ -53,6 +53,7 @@ namespace RPGMod
         public GameObject targetBody;
         public bool isLoaded = false;
         public bool isDebug = false;
+        public bool questFirst = true;
 
         // Networking params
         public short msgQuestDrop = 1337;
@@ -102,7 +103,7 @@ namespace RPGMod
         public int questObjectiveLimit;
         public List<string> questList = new List<string>() { "<b>Kill</b>", "<b>Eliminate</b>" };
         public int questIndex;
-        public bool stageChange;
+        public bool stageChange = false;
 
         // Feature params
         public bool isChests;
@@ -205,7 +206,7 @@ namespace RPGMod
                     upperObjectiveLimit = questObjectiveLimit;
                 }
 
-                if (!stageChange)
+                if (!stageChange || questFirst)
                 {
                     serverQuestData.Objective = random.Next(questObjectiveFactor, upperObjectiveLimit);
                     serverQuestData.Progress = 0;
@@ -215,6 +216,7 @@ namespace RPGMod
                 questMessage.Initialised = true;
                 questIndex = random.Next(0, questList.Count);
                 questMessage.Description = GetDescription();
+                questFirst = false;
                 stageChange = false;
                 SendQuest();
             }
