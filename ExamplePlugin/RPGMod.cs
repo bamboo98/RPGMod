@@ -52,7 +52,7 @@ namespace RPGMod
         public SpawnCard chest2 = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscchest2");
         public GameObject targetBody;
         public bool isLoaded = false;
-        public bool isDebug = true;
+        public bool isDebug = false;
         public bool questFirst = true;
         public bool isSuicide = false;
 
@@ -94,7 +94,6 @@ namespace RPGMod
         public int descriptionFontSize;
         public int sizeX;
         public int sizeY;
-        public float sizeScale;
         public bool resetUI = false;
         public bool Persistent = true;
         public CharacterBody CachedCharacterBody;
@@ -150,7 +149,6 @@ namespace RPGMod
             screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI screen y location (int)", 50).Value;
             titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
             descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
-            sizeScale = ConfigToFloat(Config.Wrap("UI", "UI Scale", "Scale size of UI (int)", "1.0").Value);
             sizeX = Config.Wrap("UI", "Size X", "Size of UI X axis (int)", 350).Value;
             sizeY = Config.Wrap("UI", "Size Y", "Size of UI Y axis (int)", 80).Value;
 
@@ -228,13 +226,19 @@ namespace RPGMod
         // Check if quest fulfilled
         public void CheckQuestStatus()
         {
+            if (!NetworkServer.active) {
+                return;
+            }
             if (serverQuestData.Progress >= serverQuestData.Objective)
             {
                 if (questMessage.Initialised) {
                     foreach (var player in PlayerCharacterMasterController.instances)
                     {
-                        var transform = player.master.GetBody().coreTransform;
-                        PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                        if (player.master.alive)
+                        {
+                            var transform = player.master.GetBody().coreTransform;
+                            PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                        }
                     }
                 }
                 GetNewQuest();
@@ -261,8 +265,8 @@ namespace RPGMod
                 if (isDebug)
                 {
                     Debug.Log(CachedCharacterBody);
-                    Debug.Log(sizeX * sizeScale);
-                    Debug.Log(sizeY * sizeScale);
+                    Debug.Log(sizeX);
+                    Debug.Log(sizeY);
                     Debug.Log(Screen.width * screenPosX / 100f);
                     Debug.Log(Screen.height * screenPosY / 100f);
                     Debug.Log(questMessage.Description);
@@ -277,7 +281,7 @@ namespace RPGMod
                 Notification.GetDescription = () => questMessage.Description;
                 Notification.GenericNotification.fadeTime = 1f;
                 Notification.GenericNotification.duration = 86400f;
-                Notification.SetSize(sizeX * sizeScale, sizeY * sizeScale);
+                Notification.SetSize(sizeX, sizeY);
                 Notification.SetFontSize(Notification.GenericNotification.titleText, titleFontSize);
                 Notification.SetFontSize(Notification.GenericNotification.descriptionText, descriptionFontSize);
                 resetUI = false;
@@ -389,6 +393,7 @@ namespace RPGMod
             On.RoR2.Run.Start += (orig, self) =>
             {
                 isLoaded = true;
+                questFirst = true;
                 orig(self);
             };
 
@@ -405,6 +410,8 @@ namespace RPGMod
                     isLoaded = false;
                     serverQuestData = new ServerQuestData();
                     questMessage = new QuestMessage();
+
+                    isClientRegistered = false;
 
                     CachedCharacterBody = null;
 
@@ -436,32 +443,32 @@ namespace RPGMod
                 };
             }
 
-            if (isEnemyDrops)
+            // Death drop hanlder
+            On.RoR2.GlobalEventManager.OnCharacterDeath += (orig, self, damageReport) =>
             {
-                // Death drop hanlder
-                On.RoR2.GlobalEventManager.OnCharacterDeath += (orig, self, damageReport) =>
+                if (!isSuicide)
                 {
-                    if (!isSuicide)
-                    {
-                        float chance;
-                        CharacterBody enemyBody = damageReport.victim.gameObject.GetComponent<CharacterBody>();
-                        GameObject attackerMaster = damageReport.damageInfo.attacker.GetComponent<CharacterBody>().masterObject;
-                        CharacterMaster attackerController = attackerMaster.GetComponent<CharacterMaster>();
+                    float chance;
+                    CharacterBody enemyBody = damageReport.victim.gameObject.GetComponent<CharacterBody>();
+                    GameObject attackerMaster = damageReport.damageInfo.attacker.GetComponent<CharacterBody>().masterObject;
+                    CharacterMaster attackerController = attackerMaster.GetComponent<CharacterMaster>();
 
-                        if (isQuesting && questMessage.Initialised)
+                    if (isQuesting && questMessage.Initialised)
+                    {
+                        if (enemyBody.GetUserName() == questMessage.Target)
                         {
-                            if (enemyBody.GetUserName() == questMessage.Target)
+                            serverQuestData.Progress += 1;
+                            CheckQuestStatus();
+                            if (questMessage.Initialised)
                             {
-                                serverQuestData.Progress += 1;
-                                CheckQuestStatus();
-                                if (questMessage.Initialised)
-                                {
-                                    questMessage.Description = GetDescription();
-                                    SendQuest();
-                                }
+                                questMessage.Description = GetDescription();
+                                SendQuest();
                             }
                         }
+                    }
 
+                    if (isEnemyDrops)
+                    {
                         bool isElite = enemyBody.isElite || enemyBody.isChampion;
                         bool isBoss = enemyBody.isBoss;
 
@@ -524,21 +531,21 @@ namespace RPGMod
                             }
                         }
                     }
-                    else {
-                        isSuicide = false;
-                    }
-                    orig(self, damageReport);
-                };
+                }
+                else {
+                    isSuicide = false;
+                }
+                orig(self, damageReport);
+            };
 
-                On.RoR2.HealthComponent.Suicide += (orig, self, killerOverride) =>
+            On.RoR2.HealthComponent.Suicide += (orig, self, killerOverride) =>
+            {
+                if (self.gameObject.GetComponent<CharacterBody>().isBoss || self.gameObject.GetComponent<CharacterBody>().GetUserName() == "Engineer Turret")
                 {
-                    if (self.gameObject.GetComponent<CharacterBody>().isBoss || self.gameObject.GetComponent<CharacterBody>().GetUserName() == "Engineer Turret")
-                    {
-                        isSuicide = true;
-                    }
-                    orig(self, killerOverride);
-                };
-            }
+                    isSuicide = true;
+                }
+                orig(self, killerOverride);
+            };
 
             // Handles scene director
             if (!isChests)
@@ -600,6 +607,7 @@ namespace RPGMod
                 if (Input.GetKeyDown(KeyCode.F3) && isDebug)
                 {
                     serverQuestData.Progress = serverQuestData.Objective - 1;
+                    questMessage.Description = GetDescription();
                     SendQuest();
                 }
 
