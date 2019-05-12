@@ -42,7 +42,7 @@ namespace RPGMod
     }
 
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.0.0")]
+    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.0.5")]
 
     public class RPGMod : BaseUnityPlugin
     {
@@ -94,7 +94,6 @@ namespace RPGMod
         public int descriptionFontSize;
         public int sizeX;
         public int sizeY;
-        public float sizeScale;
         public bool resetUI = false;
         public bool Persistent = true;
         public CharacterBody CachedCharacterBody;
@@ -111,7 +110,7 @@ namespace RPGMod
         public bool isBossChests;
         public bool isEnemyDrops;
         public bool isQuesting;
-        public bool isQuestRestting;
+        public bool isQuestResetting;
 
         // Refreshes the config values from the config
         public void RefreshConfigValues(bool initLoad)
@@ -150,7 +149,6 @@ namespace RPGMod
             screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI screen y location (int)", 50).Value;
             titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
             descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
-            sizeScale = ConfigToFloat(Config.Wrap("UI", "UI Scale", "Scale size of UI (int)", "1.0").Value);
             sizeX = Config.Wrap("UI", "Size X", "Size of UI X axis (int)", 350).Value;
             sizeY = Config.Wrap("UI", "Size Y", "Size of UI Y axis (int)", 80).Value;
 
@@ -163,7 +161,7 @@ namespace RPGMod
             isBossChests = Convert.ToBoolean(Config.Wrap("Features", "Boss Chests", "Boss loot chests (recommended to turn off when enabling interactables) (bool)", "true").Value);
             isQuesting = Convert.ToBoolean(Config.Wrap("Features", "Questing", "Questing system (bool)", "true").Value);
             isEnemyDrops = Convert.ToBoolean(Config.Wrap("Features", "Enemy Drops", "Enemies drop items (bool)", "true").Value);
-            isQuestRestting = Convert.ToBoolean(Config.Wrap("Features", "Quest Resetting", "Determines whether quests reset over stage advancement (bool)", "false").Value);
+            isQuestResetting = Convert.ToBoolean(Config.Wrap("Features", "Quest Resetting", "Determines whether quests reset over stage advancement (bool)", "false").Value);
 
             // force UI refresh and send message
             resetUI = true;
@@ -175,10 +173,7 @@ namespace RPGMod
         {
             if (!questMessage.Initialised)
             {
-                if (NetworkServer.active)
-                {
-                    GetNewQuest();
-                }
+                GetNewQuest();
             }
             else
             {
@@ -189,6 +184,10 @@ namespace RPGMod
         // Sets quest parameters
         public void GetNewQuest()
         {
+            if (!NetworkServer.active) {
+                return;
+            }
+
             int monstersAlive = TeamComponent.GetTeamMembers(TeamIndex.Monster).Count;
 
             if (monstersAlive > 0)
@@ -209,7 +208,7 @@ namespace RPGMod
                     upperObjectiveLimit = questObjectiveLimit;
                 }
 
-                if (!stageChange || questFirst || isQuestRestting)
+                if (!stageChange || questFirst || isQuestResetting)
                 {
                     serverQuestData.Objective = random.Next(questObjectiveFactor, upperObjectiveLimit);
                     serverQuestData.Progress = 0;
@@ -227,13 +226,19 @@ namespace RPGMod
         // Check if quest fulfilled
         public void CheckQuestStatus()
         {
+            if (!NetworkServer.active) {
+                return;
+            }
             if (serverQuestData.Progress >= serverQuestData.Objective)
             {
                 if (questMessage.Initialised) {
                     foreach (var player in PlayerCharacterMasterController.instances)
                     {
-                        var transform = player.master.GetBody().coreTransform;
-                        PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                        if (player.master.alive)
+                        {
+                            var transform = player.master.GetBody().coreTransform;
+                            PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                        }
                     }
                 }
                 GetNewQuest();
@@ -257,14 +262,26 @@ namespace RPGMod
                     Destroy(Notification);
                 }
 
+                if (isDebug)
+                {
+                    Debug.Log(CachedCharacterBody);
+                    Debug.Log(sizeX);
+                    Debug.Log(sizeY);
+                    Debug.Log(Screen.width * screenPosX / 100f);
+                    Debug.Log(Screen.height * screenPosY / 100f);
+                    Debug.Log(questMessage.Description);
+                    Debug.Log(titleFontSize);
+                    Debug.Log(descriptionFontSize);
+                }
+
                 Notification = CachedCharacterBody.gameObject.AddComponent<Notification>();
                 Notification.transform.SetParent(CachedCharacterBody.transform);
                 Notification.SetPosition(new Vector3((float)(Screen.width * screenPosX / 100f), (float)(Screen.height * screenPosY / 100f), 0));
                 Notification.GetTitle = () => "QUEST";
-                Notification.GetDescription = DisplayString;
+                Notification.GetDescription = () => questMessage.Description;
                 Notification.GenericNotification.fadeTime = 1f;
                 Notification.GenericNotification.duration = 86400f;
-                Notification.SetSize(sizeX * sizeScale, sizeY * sizeScale);
+                Notification.SetSize(sizeX, sizeY);
                 Notification.SetFontSize(Notification.GenericNotification.titleText, titleFontSize);
                 Notification.SetFontSize(Notification.GenericNotification.descriptionText, descriptionFontSize);
                 resetUI = false;
@@ -282,7 +299,7 @@ namespace RPGMod
 
             if (Notification != null && Notification.RootObject != null)
             {
-                if (this.Persistent || (localUser != null && localUser.inputPlayer != null && localUser.inputPlayer.GetButton("info")))
+                if (Persistent || (localUser != null && localUser.inputPlayer != null && localUser.inputPlayer.GetButton("info")))
                 {
                     Notification.RootObject.SetActive(true);
                     return;
@@ -320,6 +337,9 @@ namespace RPGMod
         // Send message
         public void SendQuest()
         {
+            if (!NetworkServer.active) {
+                return;
+            }
             NetworkServer.SendToAll(msgQuestDrop, questMessage);
         }
 
@@ -349,12 +369,6 @@ namespace RPGMod
             return 0f;
         }
 
-        // Returns string for notification
-        public string DisplayString()
-        {
-            return questMessage.Description.ToString();
-        }
-
         // Drops Boss Chest
         public void DropBoss(SpawnCard spawnCard, Transform transform)
         {
@@ -379,6 +393,7 @@ namespace RPGMod
             On.RoR2.Run.Start += (orig, self) =>
             {
                 isLoaded = true;
+                questFirst = true;
                 orig(self);
             };
 
@@ -395,7 +410,16 @@ namespace RPGMod
                     isLoaded = false;
                     serverQuestData = new ServerQuestData();
                     questMessage = new QuestMessage();
-                    Destroy(Notification);
+
+                    isClientRegistered = false;
+
+                    CachedCharacterBody = null;
+
+                    if (Notification != null)
+                    {
+                        Destroy(Notification);
+                    }
+
                     orig(self);
                 };
 
@@ -419,32 +443,32 @@ namespace RPGMod
                 };
             }
 
-            if (isEnemyDrops)
+            // Death drop hanlder
+            On.RoR2.GlobalEventManager.OnCharacterDeath += (orig, self, damageReport) =>
             {
-                // Death drop hanlder
-                On.RoR2.GlobalEventManager.OnCharacterDeath += (orig, self, damageReport) =>
+                if (!isSuicide)
                 {
-                    if (!isSuicide)
-                    {
-                        float chance;
-                        CharacterBody enemyBody = damageReport.victim.gameObject.GetComponent<CharacterBody>();
-                        GameObject attackerMaster = damageReport.damageInfo.attacker.GetComponent<CharacterBody>().masterObject;
-                        CharacterMaster attackerController = attackerMaster.GetComponent<CharacterMaster>();
+                    float chance;
+                    CharacterBody enemyBody = damageReport.victim.gameObject.GetComponent<CharacterBody>();
+                    GameObject attackerMaster = damageReport.damageInfo.attacker.GetComponent<CharacterBody>().masterObject;
+                    CharacterMaster attackerController = attackerMaster.GetComponent<CharacterMaster>();
 
-                        if (isQuesting && questMessage.Initialised)
+                    if (isQuesting && questMessage.Initialised)
+                    {
+                        if (enemyBody.GetUserName() == questMessage.Target)
                         {
-                            if (enemyBody.GetUserName() == questMessage.Target)
+                            serverQuestData.Progress += 1;
+                            CheckQuestStatus();
+                            if (questMessage.Initialised)
                             {
-                                serverQuestData.Progress += 1;
-                                CheckQuestStatus();
-                                if (questMessage.Initialised)
-                                {
-                                    questMessage.Description = GetDescription();
-                                    SendQuest();
-                                }
+                                questMessage.Description = GetDescription();
+                                SendQuest();
                             }
                         }
+                    }
 
+                    if (isEnemyDrops)
+                    {
                         bool isElite = enemyBody.isElite || enemyBody.isChampion;
                         bool isBoss = enemyBody.isBoss;
 
@@ -507,12 +531,12 @@ namespace RPGMod
                             }
                         }
                     }
-                    else {
-                        isSuicide = false;
-                    }
-                    orig(self, damageReport);
-                };
-            }
+                }
+                else {
+                    isSuicide = false;
+                }
+                orig(self, damageReport);
+            };
 
             On.RoR2.HealthComponent.Suicide += (orig, self, killerOverride) =>
             {
@@ -582,8 +606,11 @@ namespace RPGMod
 
                 if (Input.GetKeyDown(KeyCode.F3) && isDebug)
                 {
-                    serverQuestData.Progress = 7;
+                    serverQuestData.Progress = serverQuestData.Objective - 1;
+                    questMessage.Description = GetDescription();
+                    SendQuest();
                 }
+
             }
         }
     }
