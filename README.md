@@ -18,7 +18,8 @@ This mod has a large config with many values to change to your desire with the a
 
 ## Known Issues
 
-UI can be vertically stretched, fix is being looked at
+If you find any issues with my mod please create a new issue on the github, you can find existing issues here:
+<https://github.com/ghasttear1/RPGMod/issues>
 
 ## Installation
 
@@ -29,10 +30,11 @@ UI can be vertically stretched, fix is being looked at
 ## Changelog
 
 - 1.0.0: Mod release!
-- 1.0.1: updated readme
+- 1.0.1: Updated readme
 - 1.0.2: Fixed glitched first quest
 - 1.0.3: Fixed teleporter getting stuck, changed config reload to F6 (conflict with ROR2Cheats), added config types, fixed item drop spam, added new config for quest resetting on advancing stage, special thanks to @Targets for help debugging :)
-- 1.0.4: removed debugging messages that were left in
+- 1.0.4: Removed debugging messages that were left in
+- 1.0.5 WIP: Code cleanup and optimisation, UI fixes
 
 ## Contact
 
