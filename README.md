@@ -37,6 +37,7 @@ If you find any issues with my mod please create a new issue on the github, you 
 - 1.0.3: Fixed teleporter getting stuck, changed config reload to F6 (conflict with ROR2Cheats), added config types, fixed item drop spam, added new config for quest resetting on advancing stage, special thanks to @Targets for help debugging :)
 - 1.0.4: Removed debugging messages that were left in
 - 1.0.5: Small amount of code cleanup, fixed vertical UI bug and large UI bug, fixed disabling enemydrops making quest progress not work, fixed item spam when player dies or leaves, fixed moving from singleplayer game to multiplayer game, and more
+- 1.1.0: Added game scaling for drops helping even out drops experienced at early and end game, added chat message for help with those playing with unmodded players, changed the way the scene placement works making disabled spawns configurable, changed config defaults, descriptions and values.
 
 ## Contact
 

@@ -2,6 +2,7 @@
 using RoR2;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -42,7 +43,7 @@ namespace RPGMod
     }
 
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.0.5")]
+    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.0")]
 
     public class RPGMod : BaseUnityPlugin
     {
@@ -55,6 +56,7 @@ namespace RPGMod
         public bool isDebug = false;
         public bool questFirst = true;
         public bool isSuicide = false;
+        public String[] bannedDirectorSpawns;
 
         // Networking params
         public short msgQuestDrop = 1337;
@@ -80,11 +82,7 @@ namespace RPGMod
         public float normalChanceTier2;
         public float normalChanceTier3;
         public float normalChanceTierEquip;
-
-        // Director params
-        public int amountMountainShrines;
-        public int amountChanceShrines;
-        public int amountCombatShrines;
+        public float gameStartScaling;
 
         // UI params
         public Notification Notification { get; set; }
@@ -101,6 +99,8 @@ namespace RPGMod
         // Questing params
         public int questObjectiveFactor;
         public int questObjectiveLimit;
+        public bool itemDroppingFromPlayers;
+        public bool questInChat;
         public List<string> questList = new List<string>() { "<b>Kill</b>", "<b>Eliminate</b>" };
         public int questIndex;
         public bool stageChange = false;
@@ -121,15 +121,15 @@ namespace RPGMod
             }
 
             // Chances
-            chanceNormal = ConfigToFloat(Config.Wrap("Chances", "Chance Normal", "Base chance for a normal enemy to drop an item (float)", "10").Value);
-            chanceElite = ConfigToFloat(Config.Wrap("Chances", "Chance Elite", "Base chance for an elite enemy to drop an item (float)", "12").Value);
-            chanceBoss = ConfigToFloat(Config.Wrap("Chances", "Chance Boss", "Base chance for a boss enemy to drop an item (float)", "35").Value);
-            bossChestChanceLegendary = ConfigToFloat(Config.Wrap("Chances", "Chest Chance Legendary", "Chance for a legendary to drop from a boss chest (float)", "0.3").Value);
-            bossChestChanceUncommon = ConfigToFloat(Config.Wrap("Chances", "Chest Chance Uncommon", "Chance for a uncommon to drop from a boss chest (float)", "0.7").Value);
-            chanceQuestingCommon = ConfigToFloat(Config.Wrap("Chances", "Quest Chance Common", "Chance for quest drop to be common (float)", "0").Value);
-            chanceQuestingUnCommon = ConfigToFloat(Config.Wrap("Chances", "Quest Chance Uncommon", "Chance for quest drop to be uncommon (float)", "0.85").Value);
-            chanceQuestingLegendary = ConfigToFloat(Config.Wrap("Chances", "Quest Chance Legendary", "Chance for quest drop to be legendary (float)", " 0.15").Value);
-            dropsPlayerScaling = ConfigToFloat(Config.Wrap("Chances", "Drops Player Scaling", "Scaling per player (float)", " 0.35").Value);
+            chanceNormal = ConfigToFloat(Config.Wrap("Chances", "chanceNormal", "Base chance for a normal enemy to drop an item (float)", "9.5").Value);
+            chanceElite = ConfigToFloat(Config.Wrap("Chances", "chanceElite", "Base chance for an elite enemy to drop an item (float)", "11.0").Value);
+            chanceBoss = ConfigToFloat(Config.Wrap("Chances", "chanceBoss", "Base chance for a boss enemy to drop an item (float)", "35.0").Value);
+            bossChestChanceLegendary = ConfigToFloat(Config.Wrap("Chances", "bossChestChanceLegendary", "Chance for a legendary to drop from a boss chest (float)", "0.3").Value);
+            bossChestChanceUncommon = ConfigToFloat(Config.Wrap("Chances", "bossChestChanceUncommon", "Chance for a uncommon to drop from a boss chest (float)", "0.7").Value);
+            chanceQuestingCommon = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingCommon", "Chance for quest drop to be common (float)", "0").Value);
+            chanceQuestingUnCommon = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingUnCommon", "Chance for quest drop to be uncommon (float)", "0.85").Value);
+            chanceQuestingLegendary = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingLegendary", "Chance for quest drop to be legendary (float)", "0.15").Value);
+            dropsPlayerScaling = ConfigToFloat(Config.Wrap("Chances", "dropsPlayerScaling", "Scaling per player (drop chance percentage increase per player) (float)", "0.35").Value);
             eliteChanceTier1 = ConfigToFloat(Config.Wrap("Chances", "eliteChanceTier1", "Chance for elite to drop a tier 1 item (float)", "0.45").Value);
             eliteChanceTier2 = ConfigToFloat(Config.Wrap("Chances", "eliteChanceTier2", "Chance for elite to drop a tier 2 item (float)", "0.2").Value);
             eliteChanceTier3 = ConfigToFloat(Config.Wrap("Chances", "eliteChanceTier3", "Chance for elite to drop a tier 3 item (float)", "0.1").Value);
@@ -138,27 +138,28 @@ namespace RPGMod
             normalChanceTier2 = ConfigToFloat(Config.Wrap("Chances", "normalChanceTier2", "Chance for normal enemy to drop a tier 2 item (float)", "0.1").Value);
             normalChanceTier3 = ConfigToFloat(Config.Wrap("Chances", "normalChanceTier3", "Chance for normal enemy to drop a tier 3 item (float)", "0.01").Value);
             normalChanceTierEquip = ConfigToFloat(Config.Wrap("Chances", "normalChanceTierEquip", "Chance for normal enemy to drop equipment (float)", "0.1").Value);
-
-            // Director params
-            amountMountainShrines = Config.Wrap("Spawning", "Amount Mountain Shrines", "The amount of mountain shrines that spawn per stage (int)", 2).Value;
-            amountChanceShrines = Config.Wrap("Spawning", "Amount Chance Shrines", "The amount of chances shrines that spawn per stage (int)", 0).Value;
-            amountCombatShrines = Config.Wrap("Spawning", "Amount Combat Shrines", "The amount of combat shrines that spawn per stage (int)", 2).Value;
+            gameStartScaling = ConfigToFloat(Config.Wrap("Chances", "gameStartScaling", "Scaling of chances for the start of the game, that goes away during later stages (float)", "1.5").Value);
 
             // UI params
-            screenPosX = Config.Wrap("UI", "Screen Pos X", "UI screen x location (int)", 89).Value;
-            screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI screen y location (int)", 50).Value;
+            screenPosX = Config.Wrap("UI", "Screen Pos X", "UI location on the x axis (percentage of screen width) (int)", 89).Value;
+            screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI location on the y axis (percentage of screen height) (int)", 50).Value;
             titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
             descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
-            sizeX = Config.Wrap("UI", "Size X", "Size of UI X axis (int)", 350).Value;
-            sizeY = Config.Wrap("UI", "Size Y", "Size of UI Y axis (int)", 80).Value;
+            sizeX = Config.Wrap("UI", "Size X", "Size of UI on the x axis (pixels)", 300).Value;
+            sizeY = Config.Wrap("UI", "Size Y", "Size of UI on the x axis (pixels) (int)", 80).Value;
 
             // Questing params
             questObjectiveFactor = Config.Wrap("Questing", "Quest Objective Minimum", "The factor for quest objective values (int)", 8).Value;
             questObjectiveLimit = Config.Wrap("Questing", "Quest Objective Limit", "The factor for the max quest objective value (int)", 20).Value;
+            itemDroppingFromPlayers = Convert.ToBoolean(Config.Wrap("Questing", "itemDroppingFromPlayers", "Items drop from player instead of popping up in inventory (bool)", "false").Value);
+            questInChat = Convert.ToBoolean(Config.Wrap("Questing", "questInChat", "Quests show up in chat (useful when playing with unmodded players) (bool)", "true").Value);
+
+            // Director params
+            bannedDirectorSpawns = Config.Wrap("Director", "bannedDirectorSpawns", "A comma seperated list of banned spawns for director", "Chest,TripleShop,Chance,Equipment,Blood").Value.Split(',');
+            isChests = Convert.ToBoolean(Config.Wrap("Director", "Interactables", "Use banned director spawns (bool)", "true").Value);
 
             // Feature params
-            isChests = Convert.ToBoolean(Config.Wrap("Features", "Interactables", "Chests and other interactables (such as shrines and gold barrels) (bool)", "false").Value);
-            isBossChests = Convert.ToBoolean(Config.Wrap("Features", "Boss Chests", "Boss loot chests (recommended to turn off when enabling interactables) (bool)", "true").Value);
+            isBossChests = Convert.ToBoolean(Config.Wrap("Features", "Boss Chests", "Boss loot chests (recommended to turn off when enabling interactables) (bool)", "false").Value);
             isQuesting = Convert.ToBoolean(Config.Wrap("Features", "Questing", "Questing system (bool)", "true").Value);
             isEnemyDrops = Convert.ToBoolean(Config.Wrap("Features", "Enemy Drops", "Enemies drop items (bool)", "true").Value);
             isQuestResetting = Convert.ToBoolean(Config.Wrap("Features", "Quest Resetting", "Determines whether quests reset over stage advancement (bool)", "false").Value);
@@ -217,6 +218,16 @@ namespace RPGMod
                 questMessage.Initialised = true;
                 questIndex = random.Next(0, questList.Count);
                 questMessage.Description = GetDescription();
+                if (questInChat)
+                {
+                    Chat.SimpleChatMessage message = new Chat.SimpleChatMessage();
+                    message.baseToken = string.Format("Eliminate {0} {1}s to receive: <color=#{2}>{3}</color>",
+                        serverQuestData.Objective,
+                        questMessage.Target,
+                        ColorUtility.ToHtmlStringRGBA(serverQuestData.Drop.GetPickupColor()),
+                        Language.GetString(ItemCatalog.GetItemDef(serverQuestData.Drop.itemIndex).nameToken));
+                    Chat.SendBroadcastChat(message);
+                }
                 questFirst = false;
                 stageChange = false;
                 SendQuest();
@@ -237,7 +248,14 @@ namespace RPGMod
                         if (player.master.alive)
                         {
                             var transform = player.master.GetBody().coreTransform;
-                            PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                            if (itemDroppingFromPlayers)
+                            {
+                                PickupDropletController.CreatePickupDroplet(serverQuestData.Drop, transform.position, transform.forward * 10f);
+                            }
+                            else
+                            {
+                                player.master.inventory.GiveItem(serverQuestData.Drop.itemIndex);
+                            }
                         }
                     }
                 }
@@ -334,7 +352,7 @@ namespace RPGMod
             isClientRegistered = true;
         }
 
-        // Send message
+        // Send data message
         public void SendQuest()
         {
             if (!NetworkServer.active) {
@@ -489,6 +507,10 @@ namespace RPGMod
                         }
 
                         chance *= (1 - dropsPlayerScaling + (dropsPlayerScaling * Run.instance.participatingPlayerCount));
+                        if (gameStartScaling - (Run.instance.difficultyCoefficient - 1) > 1)
+                        {
+                            chance *= (gameStartScaling -= (Run.instance.difficultyCoefficient - 1));
+                        }
 
                         // rng check
                         bool didDrop = Util.CheckRoll(chance, attackerController ? attackerController.luck : 0f, null);
@@ -547,37 +569,29 @@ namespace RPGMod
                 orig(self, killerOverride);
             };
 
-            // Handles scene director
-            if (!isChests)
+            if (isChests)
             {
-                On.RoR2.SceneDirector.PlaceTeleporter += (orig, self) =>
+                // Handles banned scene spawns
+                On.RoR2.ClassicStageInfo.Awake += (orig, self) =>
                 {
-                    self.SetFieldValue("interactableCredit", 0);
-
-                    DirectorPlacementRule placementMode = new DirectorPlacementRule();
-                    placementMode.placementMode = DirectorPlacementRule.PlacementMode.Random;
-                    Xoroshiro128Plus rng = new Xoroshiro128Plus((ulong)Run.instance.stageRng.nextUint);
-
-                    DirectorCore myDirector = self.GetFieldValue<DirectorCore>("directorCore");
-
-                    // Todo: change shrine spawns to reflect that of default but still without chests
-                    for (int i = 0; i < random.Next(0, amountMountainShrines); i++)
-                    { 
-                        myDirector.TrySpawnObject(Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscShrineBoss"), placementMode, rng);
-                    }
-
-                    for (int i = 0; i < random.Next(0, amountChanceShrines); i++)
+                    // Gets card catergories using reflection
+                    DirectorCardCategorySelection cardSelection = self.GetFieldValue<DirectorCardCategorySelection>("interactableCategories");
+                    for (int i = 0; i < cardSelection.categories.Length; i++)
                     {
-                        myDirector.TrySpawnObject(Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscShrineChance"), placementMode, rng);
-                    }
+                        // Makes copy of category to make changes
+                        var cards3 = cardSelection.categories[i];
+                        cards3.cards = cardSelection.categories[i].cards.Where(val => !bannedDirectorSpawns.Any(val.spawnCard.prefab.name.Contains)).ToArray();
 
-                    for (int i = 0; i < random.Next(0, amountCombatShrines); i++)
-                    {
-                        myDirector.TrySpawnObject(Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscShrineCombat"), placementMode, rng);
+                        // Sets category to new edited version
+                        cardSelection.categories[i] = cards3;
                     }
+                    // Sets new card categories
+                    self.SetFieldValue("interactableCategories", cardSelection);
 
+                    // Runs original function
                     orig(self);
                 };
+
             }
 
         }

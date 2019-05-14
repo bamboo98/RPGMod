@@ -1,6 +1,6 @@
 {
     "name": "RPGMod",
-    "version_number": "1.0.5",
+    "version_number": "1.1.0",
     "website_url": "https://github.com/ghasttear1/RPGMod",
     "description": "A mod that adds highly configurable questing, enemy drops and boss chests.",
     "dependencies": [
