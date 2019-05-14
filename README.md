@@ -29,6 +29,10 @@ If you find any issues with my mod please create a new issue on the github, you 
 2. Move the `RPGMod.dll` into `Risk of Rain 2\BepInEx\plugins` folder
 3. Enjoy!
 
+## Updating
+
+When updating please delete your old config for the mod and let a new one get created (you can make a backup of the old one and copy old values over), as config descriptions and values get added and changed with most updates.
+
 ## Changelog
 
 - 1.0.0: Mod release!
