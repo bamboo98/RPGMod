@@ -42,8 +42,7 @@ namespace RPGMod
         public int Progress;
     }
 
-    [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.0")]
+    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.1")]
 
     public class RPGMod : BaseUnityPlugin
     {
@@ -88,8 +87,8 @@ namespace RPGMod
         public Notification Notification { get; set; }
         public int screenPosX;
         public int screenPosY;
-        public int titleFontSize;
-        public int descriptionFontSize;
+        //public int titleFontSize;
+        //public int descriptionFontSize;
         public int sizeX;
         public int sizeY;
         public bool resetUI = false;
@@ -143,8 +142,8 @@ namespace RPGMod
             // UI params
             screenPosX = Config.Wrap("UI", "Screen Pos X", "UI location on the x axis (percentage of screen width) (int)", 89).Value;
             screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI location on the y axis (percentage of screen height) (int)", 50).Value;
-            titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
-            descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
+            //titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
+            //descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
             sizeX = Config.Wrap("UI", "Size X", "Size of UI on the x axis (pixels)", 300).Value;
             sizeY = Config.Wrap("UI", "Size Y", "Size of UI on the x axis (pixels) (int)", 80).Value;
 
@@ -288,8 +287,8 @@ namespace RPGMod
                     Debug.Log(Screen.width * screenPosX / 100f);
                     Debug.Log(Screen.height * screenPosY / 100f);
                     Debug.Log(questMessage.Description);
-                    Debug.Log(titleFontSize);
-                    Debug.Log(descriptionFontSize);
+                    //Debug.Log(titleFontSize);
+                    //Debug.Log(descriptionFontSize);
                 }
 
                 Notification = CachedCharacterBody.gameObject.AddComponent<Notification>();
@@ -300,8 +299,6 @@ namespace RPGMod
                 Notification.GenericNotification.fadeTime = 1f;
                 Notification.GenericNotification.duration = 86400f;
                 Notification.SetSize(sizeX, sizeY);
-                Notification.SetFontSize(Notification.GenericNotification.titleText, titleFontSize);
-                Notification.SetFontSize(Notification.GenericNotification.descriptionText, descriptionFontSize);
                 resetUI = false;
             }
 

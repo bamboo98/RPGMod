@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -53,8 +53,8 @@
     <Reference Include="Rewired_Windows_Lib">
       <HintPath>..\libs\Rewired_Windows_Lib.dll</HintPath>
     </Reference>
-    <Reference Include="TextMeshPro-1.0.55.2017.1.0b11">
-      <HintPath>..\libs\TextMeshPro-1.0.55.2017.1.0b11.dll</HintPath>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Postprocessing.Runtime">
       <HintPath>..\libs\Unity.Postprocessing.Runtime.dll</HintPath>

@@ -42,6 +42,7 @@ When updating please delete your old config for the mod and let a new one get cr
 - 1.0.4: Removed debugging messages that were left in
 - 1.0.5: Small amount of code cleanup, fixed vertical UI bug and large UI bug, fixed disabling enemydrops making quest progress not work, fixed item spam when player dies or leaves, fixed moving from singleplayer game to multiplayer game, and more
 - 1.1.0: Added game scaling for drops helping even out drops experienced at early and end game, added chat message for help with those playing with unmodded players, changed the way the scene placement works making disabled spawns configurable, changed config defaults, descriptions and values.
+- 1.1.1: Fixed the broken display caused from the latest game update
 
 ## Contact
 
