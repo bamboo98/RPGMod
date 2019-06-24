@@ -42,7 +42,7 @@ namespace RPGMod
         public int Progress;
     }
 
-    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.1")]
+    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.2")]
 
     public class RPGMod : BaseUnityPlugin
     {
@@ -194,9 +194,9 @@ namespace RPGMod
             {
                 CharacterBody targetBody = TeamComponent.GetTeamMembers(TeamIndex.Monster)[random.Next(0, monstersAlive)].GetComponent<CharacterBody>();
 
-                while (targetBody.isBoss)
+                if (targetBody.isBoss || SurvivorCatalog.FindSurvivorDefFromBody(targetBody.master.bodyPrefab) != null)
                 {
-                    targetBody = TeamComponent.GetTeamMembers(TeamIndex.Monster)[random.Next(0, monstersAlive)].GetComponent<CharacterBody>();
+                    return;
                 }
 
                 questMessage.Target = targetBody.GetUserName();
