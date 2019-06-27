@@ -1,9 +1,9 @@
 {
     "name": "RPGMod",
-    "version_number": "1.1.0",
+    "version_number": "1.2.3",
     "website_url": "https://github.com/ghasttear1/RPGMod",
-    "description": "A mod that adds highly configurable questing, enemy drops and boss chests.",
+    "description": "A mod that adds highly configurable questing and enemy drops",
     "dependencies": [
-        "bbepis-BepInExPack-1.3.1"
+        "bbepis-BepInExPack-2.0.0"
     ]
 }

@@ -2,6 +2,7 @@
 using RoR2;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -42,21 +43,21 @@ namespace RPGMod
         public int Progress;
     }
 
-    [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.1.0")]
+    [BepInPlugin("com.ghasttear1.rpgmod", "RPGMod", "1.2.3")]
 
     public class RPGMod : BaseUnityPlugin
     {
        
         // Misc params
         public System.Random random = new System.Random();
-        public SpawnCard chest2 = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscchest2");
+        // public SpawnCard chest2 = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscchest2");
         public GameObject targetBody;
         public bool isLoaded = false;
         public bool isDebug = false;
         public bool questFirst = true;
         public bool isSuicide = false;
         public String[] bannedDirectorSpawns;
+        public float percentSpawns = 1.0f;
 
         // Networking params
         public short msgQuestDrop = 1337;
@@ -88,8 +89,8 @@ namespace RPGMod
         public Notification Notification { get; set; }
         public int screenPosX;
         public int screenPosY;
-        public int titleFontSize;
-        public int descriptionFontSize;
+        //public int titleFontSize;
+        //public int descriptionFontSize;
         public int sizeX;
         public int sizeY;
         public bool resetUI = false;
@@ -127,8 +128,8 @@ namespace RPGMod
             bossChestChanceLegendary = ConfigToFloat(Config.Wrap("Chances", "bossChestChanceLegendary", "Chance for a legendary to drop from a boss chest (float)", "0.3").Value);
             bossChestChanceUncommon = ConfigToFloat(Config.Wrap("Chances", "bossChestChanceUncommon", "Chance for a uncommon to drop from a boss chest (float)", "0.7").Value);
             chanceQuestingCommon = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingCommon", "Chance for quest drop to be common (float)", "0").Value);
-            chanceQuestingUnCommon = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingUnCommon", "Chance for quest drop to be uncommon (float)", "0.85").Value);
-            chanceQuestingLegendary = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingLegendary", "Chance for quest drop to be legendary (float)", "0.15").Value);
+            chanceQuestingUnCommon = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingUnCommon", "Chance for quest drop to be uncommon (float)", "0.92").Value);
+            chanceQuestingLegendary = ConfigToFloat(Config.Wrap("Chances", "chanceQuestingLegendary", "Chance for quest drop to be legendary (float)", "0.08").Value);
             dropsPlayerScaling = ConfigToFloat(Config.Wrap("Chances", "dropsPlayerScaling", "Scaling per player (drop chance percentage increase per player) (float)", "0.35").Value);
             eliteChanceTier1 = ConfigToFloat(Config.Wrap("Chances", "eliteChanceTier1", "Chance for elite to drop a tier 1 item (float)", "0.45").Value);
             eliteChanceTier2 = ConfigToFloat(Config.Wrap("Chances", "eliteChanceTier2", "Chance for elite to drop a tier 2 item (float)", "0.2").Value);
@@ -143,8 +144,8 @@ namespace RPGMod
             // UI params
             screenPosX = Config.Wrap("UI", "Screen Pos X", "UI location on the x axis (percentage of screen width) (int)", 89).Value;
             screenPosY = Config.Wrap("UI", "Screen Pos Y", "UI location on the y axis (percentage of screen height) (int)", 50).Value;
-            titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
-            descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
+            //titleFontSize = Config.Wrap("UI", "Title Font Size", "UI title font size (int)", 18).Value;
+            //descriptionFontSize = Config.Wrap("UI", "Description Font Size", "UI description font size (int)", 14).Value;
             sizeX = Config.Wrap("UI", "Size X", "Size of UI on the x axis (pixels)", 300).Value;
             sizeY = Config.Wrap("UI", "Size Y", "Size of UI on the x axis (pixels) (int)", 80).Value;
 
@@ -155,11 +156,12 @@ namespace RPGMod
             questInChat = Convert.ToBoolean(Config.Wrap("Questing", "questInChat", "Quests show up in chat (useful when playing with unmodded players) (bool)", "true").Value);
 
             // Director params
+            percentSpawns = ConfigToFloat(Config.Wrap("Director", "percentSpawns", "Percentage amount of world spawns", "1.0").Value);
             bannedDirectorSpawns = Config.Wrap("Director", "bannedDirectorSpawns", "A comma seperated list of banned spawns for director", "Chest,TripleShop,Chance,Equipment,Blood").Value.Split(',');
             isChests = Convert.ToBoolean(Config.Wrap("Director", "Interactables", "Use banned director spawns (bool)", "true").Value);
 
             // Feature params
-            isBossChests = Convert.ToBoolean(Config.Wrap("Features", "Boss Chests", "Boss loot chests (recommended to turn off when enabling interactables) (bool)", "false").Value);
+            // isBossChests = Convert.ToBoolean(Config.Wrap("Features", "Boss Chests", "Boss loot chests (recommended to turn off when enabling interactables) (bool)", "false").Value);
             isQuesting = Convert.ToBoolean(Config.Wrap("Features", "Questing", "Questing system (bool)", "true").Value);
             isEnemyDrops = Convert.ToBoolean(Config.Wrap("Features", "Enemy Drops", "Enemies drop items (bool)", "true").Value);
             isQuestResetting = Convert.ToBoolean(Config.Wrap("Features", "Quest Resetting", "Determines whether quests reset over stage advancement (bool)", "false").Value);
@@ -195,9 +197,9 @@ namespace RPGMod
             {
                 CharacterBody targetBody = TeamComponent.GetTeamMembers(TeamIndex.Monster)[random.Next(0, monstersAlive)].GetComponent<CharacterBody>();
 
-                while (targetBody.isBoss)
+                if (targetBody.isBoss || SurvivorCatalog.FindSurvivorDefFromBody(targetBody.master.bodyPrefab) != null)
                 {
-                    targetBody = TeamComponent.GetTeamMembers(TeamIndex.Monster)[random.Next(0, monstersAlive)].GetComponent<CharacterBody>();
+                    return;
                 }
 
                 questMessage.Target = targetBody.GetUserName();
@@ -259,7 +261,7 @@ namespace RPGMod
                         }
                     }
                 }
-                GetNewQuest();
+                questMessage.Initialised = false;
             }
         }
 
@@ -288,8 +290,8 @@ namespace RPGMod
                     Debug.Log(Screen.width * screenPosX / 100f);
                     Debug.Log(Screen.height * screenPosY / 100f);
                     Debug.Log(questMessage.Description);
-                    Debug.Log(titleFontSize);
-                    Debug.Log(descriptionFontSize);
+                    //Debug.Log(titleFontSize);
+                    //Debug.Log(descriptionFontSize);
                 }
 
                 Notification = CachedCharacterBody.gameObject.AddComponent<Notification>();
@@ -300,8 +302,6 @@ namespace RPGMod
                 Notification.GenericNotification.fadeTime = 1f;
                 Notification.GenericNotification.duration = 86400f;
                 Notification.SetSize(sizeX, sizeY);
-                Notification.SetFontSize(Notification.GenericNotification.titleText, titleFontSize);
-                Notification.SetFontSize(Notification.GenericNotification.descriptionText, descriptionFontSize);
                 resetUI = false;
             }
 
@@ -380,7 +380,7 @@ namespace RPGMod
         // Converts string config to a float
         public float ConfigToFloat(string configline)
         {
-            if (float.TryParse(configline, out float x))
+            if (float.TryParse(configline, NumberStyles.Any, CultureInfo.InvariantCulture, out float x))
             {
                 return x;
             }
@@ -395,7 +395,7 @@ namespace RPGMod
             if (Physics.Raycast(transform.position, Vector3.down, out hit))
             {
                 transform.Translate(Vector3.down * hit.distance);
-                spawnCard.DoSpawn(transform.position, transform.rotation);
+                spawnCard.DoSpawn(transform.position, transform.rotation, null);
             }
         }
 
@@ -450,24 +450,39 @@ namespace RPGMod
                 };
             }
 
-            if (isBossChests)
+            //if (isBossChests)
+            //{
+            //    // Edit chest behavior
+            //    On.RoR2.ChestBehavior.ItemDrop += (orig, self) =>
+            //    {
+            //        self.tier2Chance = bossChestChanceUncommon;
+            //        self.tier3Chance = bossChestChanceLegendary;
+            //        orig(self);
+            //    };
+            //}
+
+            On.RoR2.SceneDirector.PopulateScene += (orig, self) =>
             {
-                // Edit chest behavior
-                On.RoR2.ChestBehavior.ItemDrop += (orig, self) =>
+                int credit = self.GetFieldValue<int>("interactableCredit");
+                self.SetFieldValue("interactableCredit", (int)(credit * percentSpawns));
+                orig(self);
+            };
+
+            On.RoR2.HealthComponent.Suicide += (orig, self, killerOverride, inflictorOverride) =>
+            {
+                if (self.gameObject.GetComponent<CharacterBody>().isBoss || self.gameObject.GetComponent<CharacterBody>().GetUserName() == "Engineer Turret")
                 {
-                    self.tier2Chance = bossChestChanceUncommon;
-                    self.tier3Chance = bossChestChanceLegendary;
-                    orig(self);
-                };
-            }
+                    isSuicide = true;
+                }
+                orig(self, killerOverride, inflictorOverride);
+            };
 
             // Death drop hanlder
             On.RoR2.GlobalEventManager.OnCharacterDeath += (orig, self, damageReport) =>
             {
-                if (!isSuicide)
-                {
+                if (!isSuicide) {
                     float chance;
-                    CharacterBody enemyBody = damageReport.victim.gameObject.GetComponent<CharacterBody>();
+                    CharacterBody enemyBody = damageReport.victimBody;
                     GameObject attackerMaster = damageReport.damageInfo.attacker.GetComponent<CharacterBody>().masterObject;
                     CharacterMaster attackerController = attackerMaster.GetComponent<CharacterMaster>();
 
@@ -477,11 +492,8 @@ namespace RPGMod
                         {
                             serverQuestData.Progress += 1;
                             CheckQuestStatus();
-                            if (questMessage.Initialised)
-                            {
-                                questMessage.Description = GetDescription();
-                                SendQuest();
-                            }
+                            questMessage.Description = GetDescription();
+                            SendQuest();
                         }
                     }
 
@@ -546,27 +558,19 @@ namespace RPGMod
                             }
                             else
                             {
-                                if (isBossChests)
-                                {
-                                    DropBoss(chest2, damageReport.victim.transform);
-                                }
+                                //if (isBossChests)
+                                //{
+                                //    DropBoss(chest2, damageReport.victim.transform);
+                                //}
                             }
+                        }
+                        else
+                        {
+                            isSuicide = false;
                         }
                     }
                 }
-                else {
-                    isSuicide = false;
-                }
-                orig(self, damageReport);
-            };
-
-            On.RoR2.HealthComponent.Suicide += (orig, self, killerOverride) =>
-            {
-                if (self.gameObject.GetComponent<CharacterBody>().isBoss || self.gameObject.GetComponent<CharacterBody>().GetUserName() == "Engineer Turret")
-                {
-                    isSuicide = true;
-                }
-                orig(self, killerOverride);
+            orig(self, damageReport);
             };
 
             if (isChests)
@@ -579,11 +583,11 @@ namespace RPGMod
                     for (int i = 0; i < cardSelection.categories.Length; i++)
                     {
                         // Makes copy of category to make changes
-                        var cards3 = cardSelection.categories[i];
-                        cards3.cards = cardSelection.categories[i].cards.Where(val => !bannedDirectorSpawns.Any(val.spawnCard.prefab.name.Contains)).ToArray();
+                        var cardsCopy = cardSelection.categories[i];
+                        cardsCopy.cards = cardSelection.categories[i].cards.Where(val => !bannedDirectorSpawns.Any(val.spawnCard.prefab.name.Contains)).ToArray();
 
                         // Sets category to new edited version
-                        cardSelection.categories[i] = cards3;
+                        cardSelection.categories[i] = cardsCopy;
                     }
                     // Sets new card categories
                     self.SetFieldValue("interactableCategories", cardSelection);
