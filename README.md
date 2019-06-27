@@ -10,7 +10,7 @@ This mod offers a networked questing system that is synced with others who have 
 
 ## Enemy Item Drops
 
-This mod has highly customisable enemy loot drops with bosses having the chance to drop chests with better loot.
+This mod has highly customisable enemy loot drops.
 
 ## Configurability
 
@@ -41,8 +41,13 @@ When updating please delete your old config for the mod and let a new one get cr
 - 1.0.3: Fixed teleporter getting stuck, changed config reload to F6 (conflict with ROR2Cheats), added config types, fixed item drop spam, added new config for quest resetting on advancing stage, special thanks to @Targets for help debugging :)
 - 1.0.4: Removed debugging messages that were left in
 - 1.0.5: Small amount of code cleanup, fixed vertical UI bug and large UI bug, fixed disabling enemydrops making quest progress not work, fixed item spam when player dies or leaves, fixed moving from singleplayer game to multiplayer game, and more
-- 1.1.0: Added game scaling for drops helping even out drops experienced at early and end game, added chat message for help with those playing with unmodded players, changed the way the scene placement works making disabled spawns configurable, changed config defaults, descriptions and values.
+- 1.1.0: Added game scaling for drops helping even out drops experienced at early and end game, added chat message for help with those playing with unmodded players, changed the way the scene placement works making disabled spawns configurable, changed config defaults, descriptions and values
 - 1.1.1: Fixed the broken display caused from the latest game update
+- 1.1.2: Fixed the possibility of enemy survivors been chosen for a quest target
+- 1.2.0: Fixed mod to work with latest update - (had to remove chest drops from bosses as a configurable option as it broke)
+- 1.2.1: Reimplemented a fix that was previously in the mod hopefully fixing a problem with quests and particular enemies
+- 1.2.2: Fixed problem with multiple drops from a quest
+- 1.2.3: Fixed issue where depending on the computers localisation the config values would improperly be loaded
 
 ## Contact
 
