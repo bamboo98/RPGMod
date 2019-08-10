@@ -154,10 +154,11 @@ namespace RPGMod
         private bool isDropInit=false;
         private bool luckAffectingDrop = false;
         private bool randomBossRewards = false;
-        private bool dropWhenLevelUp = false;
+        private float dropWhenLevelUp = -1f;
         private bool hasPocketMoney = true;
         public float dropCoolingTime=0;
-        public float lastDropTime = 0; 
+        public float lastDropTime = -9999;
+        public float lastLevelUpTime = -9999;
 
 
         private static ConfigWrapper<int> MultiplierConfig { get; set; }
@@ -255,7 +256,7 @@ namespace RPGMod
             isQuesting = Convert.ToBoolean(Config.Wrap("Features", "Questing", "Questing system (bool)", "true").Value);
             isEnemyDrops = Convert.ToBoolean(Config.Wrap("Features", "Enemy Drops", "Enemies drop items (bool)", "true").Value);
             isQuestResetting = Convert.ToBoolean(Config.Wrap("Features", "Quest Resetting", "Determines whether quests reset over stage advancement (bool)", "false").Value);
-            dropWhenLevelUp = Convert.ToBoolean(Config.Wrap("Features", "dropWhenLevelUp", "Get a base drop when level up(if you feel the beginning of the game is so hard,set this true)(bool)", "false").Value);
+            dropWhenLevelUp = ConfigToFloat(Config.Wrap("Features", "dropWhenLevelUp", "Get a base drop when level up(set -1 to disable,other to limit dropping frequency)(second,bool)", "30").Value);
             hasPocketMoney = Convert.ToBoolean(Config.Wrap("Features", "hasPocketMoney", "Get more money at the beginning of each scene(bool)", "true").Value);
 
             if (questLanguage.Count != 6)
@@ -784,12 +785,15 @@ namespace RPGMod
             Run.onRunStartGlobal += run => { SendMultiplierChat(); };
             // 传送器的充能时间
             On.RoR2.TeleporterInteraction.GetPlayerCountInRadius += (orig, self) => orig(self) * Multiplier;
-            if (dropWhenLevelUp)
+            if (dropWhenLevelUp!=-1)
             {
                 On.RoR2.GlobalEventManager.OnTeamLevelUp += (orig, self) =>
                 {
                     orig(self);
 
+                    if (dropWhenLevelUp == -1 || Run.instance.time - lastLevelUpTime < dropWhenLevelUp)
+                        return;
+                    lastLevelUpTime = dropWhenLevelUp;
                     PickupIndex item = availableTier1DropList[Run.instance.spawnRng.RangeInt(0, availableTier1DropList.Count)];
 
                     int connectedPlayers = PlayerCharacterMasterController.instances.Count;
